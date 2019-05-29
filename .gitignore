@@ -1,0 +1,6 @@
+CMake*
+cmake*
+Makefile
+.vscode/
+*.JPG
+*.out
