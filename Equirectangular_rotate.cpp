@@ -70,7 +70,14 @@ int main(int argc, char** argv)
     Mat rot_mat = eular2rot(Vec3f(RAD(atof(argv[2])), RAD(atof(argv[3])), RAD(atof(argv[4]))));
     cout << rot_mat << endl;
 
+    // For inverse mapping, need inverse matrix of Rotation matrix
+    cout << "Inverse matrix of Rotation matrix" << endl;
+    Mat rot_mat_inv = rot_mat.inv();
+    cout << rot_mat_inv << endl;
+
     // (row, column) pixel coordinate to (lat, lon) spherical coordinate distance r is 1.0
+    // For target image's coordinate
+    cout << "Inverse warping, search target's pixel value from original image" << endl;
     cout << "(row, column) pixel coordinate to (lat, lon) spherical coordinate distance r is 1.0" << endl;
     Mat_<Vec2d> im_rad(im_height, im_width);
     for(int i = 0; i < im_height; i++)
@@ -98,16 +105,16 @@ int main(int argc, char** argv)
     }
 
     // Apply rotation matrix
-    cout << "Apply rotation matrix" << endl;
+    cout << "Apply inverse rotation matrix" << endl;
     Mat_<Vec3d> im_unit_sphere_rotate(im_height, im_width);
     for(int i = 0; i < im_height; i++)
     {
         for(int j = 0; j < im_width; j++)
         {
             Vec3d vec_cartesian_rot;
-            vec_cartesian_rot[0] = rot_mat.at<double>(0, 0)*im_unit_sphere.at<Vec3d>(i, j)[0] + rot_mat.at<double>(0, 1)*im_unit_sphere.at<Vec3d>(i, j)[1] + rot_mat.at<double>(0, 2)*im_unit_sphere.at<Vec3d>(i, j)[2];
-            vec_cartesian_rot[1] = rot_mat.at<double>(1, 0)*im_unit_sphere.at<Vec3d>(i, j)[0] + rot_mat.at<double>(1, 1)*im_unit_sphere.at<Vec3d>(i, j)[1] + rot_mat.at<double>(1, 2)*im_unit_sphere.at<Vec3d>(i, j)[2];
-            vec_cartesian_rot[2] = rot_mat.at<double>(2, 0)*im_unit_sphere.at<Vec3d>(i, j)[0] + rot_mat.at<double>(2, 1)*im_unit_sphere.at<Vec3d>(i, j)[1] + rot_mat.at<double>(2, 2)*im_unit_sphere.at<Vec3d>(i, j)[2];
+            vec_cartesian_rot[0] = rot_mat_inv.at<double>(0, 0)*im_unit_sphere.at<Vec3d>(i, j)[0] + rot_mat_inv.at<double>(0, 1)*im_unit_sphere.at<Vec3d>(i, j)[1] + rot_mat_inv.at<double>(0, 2)*im_unit_sphere.at<Vec3d>(i, j)[2];
+            vec_cartesian_rot[1] = rot_mat_inv.at<double>(1, 0)*im_unit_sphere.at<Vec3d>(i, j)[0] + rot_mat_inv.at<double>(1, 1)*im_unit_sphere.at<Vec3d>(i, j)[1] + rot_mat_inv.at<double>(1, 2)*im_unit_sphere.at<Vec3d>(i, j)[2];
+            vec_cartesian_rot[2] = rot_mat_inv.at<double>(2, 0)*im_unit_sphere.at<Vec3d>(i, j)[0] + rot_mat_inv.at<double>(2, 1)*im_unit_sphere.at<Vec3d>(i, j)[1] + rot_mat_inv.at<double>(2, 2)*im_unit_sphere.at<Vec3d>(i, j)[2];
             im_unit_sphere_rotate.at<Vec3d>(i, j) = vec_cartesian_rot;
         }
     }
@@ -143,7 +150,7 @@ int main(int argc, char** argv)
     }
 
     // save image
-    cout << "save image" << endl;
+    cout << "Save image" << endl;
     Mat im_out(im.rows, im.cols, im.type());
     for(int i = 0; i < im_height; i++)
     {
@@ -153,7 +160,7 @@ int main(int argc, char** argv)
             int out_j = im_pixel_rotate.at<Vec2d>(i, j)[1];
             if((out_i >= 0) && (out_j >= 0) && (out_i < im_height) && (out_j < im_width))
             {
-                im_out.at<Vec3b>(out_i, out_j) = im.at<Vec3b>(i, j);
+                im_out.at<Vec3b>(i, j) = im.at<Vec3b>(out_i, out_j);
             }
         }
     }
