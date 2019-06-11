@@ -12,6 +12,20 @@
 using namespace std;
 using namespace cv;
 
+void draw_progress(float progress)
+{
+    std::cout << "[";
+    int bar_width = 70;
+    int pos = bar_width * progress;
+    for (int i = 0; i < bar_width; ++i) {
+        if (i < pos) std::cout << "=";
+        else if (i == pos) std::cout << ">";
+        else std::cout << " ";
+    }
+    std::cout << "] " << int(progress * 100.0) << " %\r";
+    std::cout.flush();
+}
+
 // From OpenCV example utils.hpp code
 // Calculates rotation matrix given euler angles.
 Mat eular2rot(Vec3f theta)
@@ -43,6 +57,36 @@ Mat eular2rot(Vec3f theta)
     return R;
 }
 
+// rotate pixel, in_vec as input(row, col)
+Vec2i rotate_pixel(const Vec2i& in_vec, Vec3f theta, int width, int height)
+{
+    Mat rot_mat = eular2rot(theta);
+
+    Vec2d vec_rad = Vec2d(M_PI*in_vec[0]/height, 2*M_PI*in_vec[1]/width);
+
+    Vec3d vec_cartesian;
+    vec_cartesian[0] = sin(vec_rad[0])*cos(vec_rad[1]);
+    vec_cartesian[1] = sin(vec_rad[0])*sin(vec_rad[1]);
+    vec_cartesian[2] = cos(vec_rad[0]);
+
+    Vec3d vec_cartesian_rot;
+    vec_cartesian_rot[0] = rot_mat.at<double>(0, 0)*vec_cartesian[0] + rot_mat.at<double>(0, 1)*vec_cartesian[1] + rot_mat.at<double>(0, 2)*vec_cartesian[2];
+    vec_cartesian_rot[1] = rot_mat.at<double>(1, 0)*vec_cartesian[0] + rot_mat.at<double>(1, 1)*vec_cartesian[1] + rot_mat.at<double>(1, 2)*vec_cartesian[2];
+    vec_cartesian_rot[2] = rot_mat.at<double>(2, 0)*vec_cartesian[0] + rot_mat.at<double>(2, 1)*vec_cartesian[1] + rot_mat.at<double>(2, 2)*vec_cartesian[2];
+
+    Vec2d vec_rot;
+    vec_rot[0] = acos(vec_cartesian_rot[2]);
+    vec_rot[1] = atan2(vec_cartesian_rot[1], vec_cartesian_rot[0]);
+    if(vec_rot[1] < 0)
+        vec_rot[1] += M_PI*2;
+
+    Vec2i vec_pixel;
+    vec_pixel[0] = height*vec_rot[0]/M_PI;
+    vec_pixel[1] = width*vec_rot[1]/(2*M_PI);
+
+    return vec_pixel;
+}
+
 int main(int argc, char** argv)
 {
     if(argc != 5)
@@ -65,88 +109,20 @@ int main(int argc, char** argv)
 
     cout << "width : " << im_width << ", height : " << im_height << endl;
 
-    // Rotation matrix for rotating image
-    cout << "Rotation matrix for rotating image" << endl;
-    Mat rot_mat = eular2rot(Vec3f(RAD(atof(argv[2])), RAD(atof(argv[3])), RAD(atof(argv[4]))));
-    cout << rot_mat << endl;
-
-    // For inverse mapping, need inverse matrix of Rotation matrix
-    cout << "Inverse matrix of Rotation matrix" << endl;
-    Mat rot_mat_inv = rot_mat.inv();
-    cout << rot_mat_inv << endl;
-
-    // (row, column) pixel coordinate to (lat, lon) spherical coordinate distance r is 1.0
-    // For target image's coordinate
-    cout << "Inverse warping, search target's pixel value from original image" << endl;
-    cout << "(row, column) pixel coordinate to (lat, lon) spherical coordinate distance r is 1.0" << endl;
-    Mat_<Vec2d> im_rad(im_height, im_width);
+    Mat2i im_pixel_rotate(im_height, im_width);
     for(int i = 0; i < im_height; i++)
     {
         for(int j = 0; j < im_width; j++)
         {
-            im_rad.at<Vec2d>(i, j) = Vec2d(M_PI*i/im_height
-                                         , 2*M_PI*j/im_width);
+            Vec2i vec_pixel = rotate_pixel(Vec2i(i, j) 
+                                         , Vec3f(RAD(atof(argv[2]))
+                                               , RAD(atof(argv[3]))
+                                               , RAD(atof(argv[4])))
+                                         , im_width, im_height);
+            im_pixel_rotate.at<Vec2i>(i, j) = vec_pixel;
         }
-    }
 
-    // (lat, lon) spherical coordinate to (x, y, z) coordinate
-    cout << "(lat, lon) spherical coordinate to (x, y, z) coordinate" << endl;
-    Mat_<Vec3d> im_unit_sphere(im_height, im_width);
-    for(int i = 0; i < im_height; i++)
-    {
-        for(int j = 0; j < im_width; j++)
-        {
-            Vec3d vec_cartesian;
-            vec_cartesian[0] = sin(im_rad.at<Vec2d>(i, j)[0])*cos(im_rad.at<Vec2d>(i, j)[1]);
-            vec_cartesian[1] = sin(im_rad.at<Vec2d>(i, j)[0])*sin(im_rad.at<Vec2d>(i, j)[1]);
-            vec_cartesian[2] = cos(im_rad.at<Vec2d>(i, j)[0]);
-            im_unit_sphere.at<Vec3d>(i, j) = vec_cartesian;
-        }
-    }
-
-    // Apply rotation matrix
-    cout << "Apply inverse rotation matrix" << endl;
-    Mat_<Vec3d> im_unit_sphere_rotate(im_height, im_width);
-    for(int i = 0; i < im_height; i++)
-    {
-        for(int j = 0; j < im_width; j++)
-        {
-            Vec3d vec_cartesian_rot;
-            vec_cartesian_rot[0] = rot_mat_inv.at<double>(0, 0)*im_unit_sphere.at<Vec3d>(i, j)[0] + rot_mat_inv.at<double>(0, 1)*im_unit_sphere.at<Vec3d>(i, j)[1] + rot_mat_inv.at<double>(0, 2)*im_unit_sphere.at<Vec3d>(i, j)[2];
-            vec_cartesian_rot[1] = rot_mat_inv.at<double>(1, 0)*im_unit_sphere.at<Vec3d>(i, j)[0] + rot_mat_inv.at<double>(1, 1)*im_unit_sphere.at<Vec3d>(i, j)[1] + rot_mat_inv.at<double>(1, 2)*im_unit_sphere.at<Vec3d>(i, j)[2];
-            vec_cartesian_rot[2] = rot_mat_inv.at<double>(2, 0)*im_unit_sphere.at<Vec3d>(i, j)[0] + rot_mat_inv.at<double>(2, 1)*im_unit_sphere.at<Vec3d>(i, j)[1] + rot_mat_inv.at<double>(2, 2)*im_unit_sphere.at<Vec3d>(i, j)[2];
-            im_unit_sphere_rotate.at<Vec3d>(i, j) = vec_cartesian_rot;
-        }
-    }
-
-    // (x, y, z) coordinate to (lat, lon) spherical coordinate distance r is 1.0
-    cout << "(x, y, z) coordinate to (lat, lon) spherical coordinate distance r is 1.0" << endl;
-    Mat_<Vec2d> im_rad_rotate(im_height, im_width);
-    for(int i = 0; i < im_height; i++)
-    {
-        for(int j = 0; j < im_width; j++)
-        {
-            Vec2d vec_rot;
-            vec_rot[0] = acos(im_unit_sphere_rotate.at<Vec3d>(i, j)[2]);
-            vec_rot[1] = atan2(im_unit_sphere_rotate.at<Vec3d>(i, j)[1], im_unit_sphere_rotate.at<Vec3d>(i, j)[0]);
-            if(vec_rot[1] < 0)
-                vec_rot[1] += M_PI*2;
-            im_rad_rotate.at<Vec2d>(i, j) = vec_rot;
-        }
-    }
-
-    // (lat, lon) spherical coordinate to (row, column) pixel coordinate
-    cout << "(lat, lon) spherical coordinate to (row, column) pixel coordinate" << endl;
-    Mat_<Vec2d> im_pixel_rotate(im_height, im_width);
-    for(int i = 0; i < im_height; i++)
-    {
-        for(int j = 0; j < im_width; j++)
-        {
-            Vec2d vec_pixel;
-            vec_pixel[0] = im_height*im_rad_rotate.at<Vec2d>(i, j)[0]/M_PI;
-            vec_pixel[1] = im_width*im_rad_rotate.at<Vec2d>(i, j)[1]/(2*M_PI);
-            im_pixel_rotate.at<Vec2d>(i, j) = vec_pixel;
-        }
+        draw_progress((i*1.0f/im_height));
     }
 
     // save image
@@ -156,8 +132,8 @@ int main(int argc, char** argv)
     {
         for(int j = 0; j < im_width; j++)
         {
-            int out_i = im_pixel_rotate.at<Vec2d>(i, j)[0];
-            int out_j = im_pixel_rotate.at<Vec2d>(i, j)[1];
+            int out_i = im_pixel_rotate.at<Vec2i>(i, j)[0];
+            int out_j = im_pixel_rotate.at<Vec2i>(i, j)[1];
             if((out_i >= 0) && (out_j >= 0) && (out_i < im_height) && (out_j < im_width))
             {
                 im_out.at<Vec3b>(i, j) = im.at<Vec3b>(out_i, out_j);
