@@ -114,10 +114,11 @@ int main(int argc, char** argv)
     {
         for(int j = 0; j < im_width; j++)
         {
+            // inverse warping
             Vec2i vec_pixel = rotate_pixel(Vec2i(i, j) 
-                                         , Vec3f(RAD(atof(argv[2]))
-                                               , RAD(atof(argv[3]))
-                                               , RAD(atof(argv[4])))
+                                         , Vec3f(-RAD(atof(argv[2]))
+                                               , -RAD(atof(argv[3]))
+                                               , -RAD(atof(argv[4])))
                                          , im_width, im_height);
             im_pixel_rotate.at<Vec2i>(i, j) = vec_pixel;
         }
