@@ -1,6 +1,7 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <iostream>
+#include <omp.h>
 
 #define RAD(x) M_PI*(x)/180.0
 #define DEGREE(x) 180.0*(x)/M_PI
@@ -110,9 +111,11 @@ int main(int argc, char** argv)
     cout << "width : " << im_width << ", height : " << im_height << endl;
 
     Mat2i im_pixel_rotate(im_height, im_width);
-    for(int i = 0; i < im_height; i++)
+    Mat im_out(im.rows, im.cols, im.type());
+    #pragma omp parallel for
+    for(int i = 0; i < static_cast<int>(im_height); i++)
     {
-        for(int j = 0; j < im_width; j++)
+        for(int j = 0; j < static_cast<int>(im_width); j++)
         {
             // inverse warping
             Vec2i vec_pixel = rotate_pixel(Vec2i(i, j) 
@@ -120,26 +123,15 @@ int main(int argc, char** argv)
                                                , -RAD(atof(argv[3]))
                                                , -RAD(atof(argv[4])))
                                          , im_width, im_height);
-            im_pixel_rotate.at<Vec2i>(i, j) = vec_pixel;
-        }
-
-        draw_progress((i*1.0f/im_height));
-    }
-
-    // save image
-    cout << "Save image" << endl;
-    Mat im_out(im.rows, im.cols, im.type());
-    for(int i = 0; i < im_height; i++)
-    {
-        for(int j = 0; j < im_width; j++)
-        {
-            int out_i = im_pixel_rotate.at<Vec2i>(i, j)[0];
-            int out_j = im_pixel_rotate.at<Vec2i>(i, j)[1];
-            if((out_i >= 0) && (out_j >= 0) && (out_i < im_height) && (out_j < im_width))
+            int origin_i = vec_pixel[0];
+            int origin_j = vec_pixel[1];
+            if((origin_i >= 0) && (origin_j >= 0) && (origin_i < im_height) && (origin_j < im_width))
             {
-                im_out.at<Vec3b>(i, j) = im.at<Vec3b>(out_i, out_j);
+                im_out.at<Vec3b>(i, j) = im.at<Vec3b>(origin_i, origin_j);
             }
         }
+        if(omp_get_thread_num() == 0)
+            draw_progress((i*1.0f/(im_height/omp_get_num_threads())));
     }
 
     String savename = argv[1];
