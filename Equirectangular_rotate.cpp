@@ -112,6 +112,8 @@ int main(int argc, char** argv)
 
     Mat2i im_pixel_rotate(im_height, im_width);
     Mat im_out(im.rows, im.cols, im.type());
+    Vec3b* im_data = (Vec3b*)im.data;
+    Vec3b* im_out_data = (Vec3b*)im_out.data;
     #pragma omp parallel for
     for(int i = 0; i < static_cast<int>(im_height); i++)
     {
@@ -127,7 +129,7 @@ int main(int argc, char** argv)
             int origin_j = vec_pixel[1];
             if((origin_i >= 0) && (origin_j >= 0) && (origin_i < im_height) && (origin_j < im_width))
             {
-                im_out.at<Vec3b>(i, j) = im.at<Vec3b>(origin_i, origin_j);
+                im_out_data[i*im.cols + j] = im_data[origin_i*im.cols + origin_j];
             }
         }
         if(omp_get_thread_num() == 0)
