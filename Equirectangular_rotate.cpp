@@ -59,10 +59,8 @@ Mat eular2rot(Vec3f theta)
 }
 
 // rotate pixel, in_vec as input(row, col)
-Vec2i rotate_pixel(const Vec2i& in_vec, Vec3f theta, int width, int height)
+Vec2i rotate_pixel(const Vec2i& in_vec, Mat& rot_mat, int width, int height)
 {
-    Mat rot_mat = eular2rot(theta);
-
     Vec2d vec_rad = Vec2d(M_PI*in_vec[0]/height, 2*M_PI*in_vec[1]/width);
 
     Vec3d vec_cartesian;
@@ -70,10 +68,11 @@ Vec2i rotate_pixel(const Vec2i& in_vec, Vec3f theta, int width, int height)
     vec_cartesian[1] = sin(vec_rad[0])*sin(vec_rad[1]);
     vec_cartesian[2] = cos(vec_rad[0]);
 
+    double* rot_mat_data = (double*)rot_mat.data;
     Vec3d vec_cartesian_rot;
-    vec_cartesian_rot[0] = rot_mat.at<double>(0, 0)*vec_cartesian[0] + rot_mat.at<double>(0, 1)*vec_cartesian[1] + rot_mat.at<double>(0, 2)*vec_cartesian[2];
-    vec_cartesian_rot[1] = rot_mat.at<double>(1, 0)*vec_cartesian[0] + rot_mat.at<double>(1, 1)*vec_cartesian[1] + rot_mat.at<double>(1, 2)*vec_cartesian[2];
-    vec_cartesian_rot[2] = rot_mat.at<double>(2, 0)*vec_cartesian[0] + rot_mat.at<double>(2, 1)*vec_cartesian[1] + rot_mat.at<double>(2, 2)*vec_cartesian[2];
+    vec_cartesian_rot[0] = rot_mat_data[0]*vec_cartesian[0] + rot_mat_data[1]*vec_cartesian[1] + rot_mat_data[2]*vec_cartesian[2];
+    vec_cartesian_rot[1] = rot_mat_data[3]*vec_cartesian[0] + rot_mat_data[4]*vec_cartesian[1] + rot_mat_data[5]*vec_cartesian[2];
+    vec_cartesian_rot[2] = rot_mat_data[6]*vec_cartesian[0] + rot_mat_data[7]*vec_cartesian[1] + rot_mat_data[8]*vec_cartesian[2];
 
     Vec2d vec_rot;
     vec_rot[0] = acos(vec_cartesian_rot[2]);
@@ -114,6 +113,7 @@ int main(int argc, char** argv)
     Mat im_out(im.rows, im.cols, im.type());
     Vec3b* im_data = (Vec3b*)im.data;
     Vec3b* im_out_data = (Vec3b*)im_out.data;
+    Mat rot_mat = eular2rot(Vec3f(-RAD(atof(argv[2])), -RAD(atof(argv[3])), -RAD(atof(argv[4]))));
     #pragma omp parallel for
     for(int i = 0; i < static_cast<int>(im_height); i++)
     {
@@ -121,9 +121,7 @@ int main(int argc, char** argv)
         {
             // inverse warping
             Vec2i vec_pixel = rotate_pixel(Vec2i(i, j) 
-                                         , Vec3f(-RAD(atof(argv[2]))
-                                               , -RAD(atof(argv[3]))
-                                               , -RAD(atof(argv[4])))
+                                         , rot_mat
                                          , im_width, im_height);
             int origin_i = vec_pixel[0];
             int origin_j = vec_pixel[1];
