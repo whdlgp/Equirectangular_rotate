@@ -6,9 +6,7 @@
 #define RAD(x) M_PI*(x)/180.0
 #define DEGREE(x) 180.0*(x)/M_PI
 
-#include "opencv2/imgproc.hpp"
-#include "opencv2/imgcodecs.hpp"
-#include "opencv2/highgui.hpp"
+#include <opencv2/opencv.hpp>
 
 using namespace std;
 using namespace cv;
@@ -27,35 +25,21 @@ void draw_progress(float progress)
     std::cout.flush();
 }
 
-// From OpenCV example utils.hpp code
-// Calculates rotation matrix given euler angles.
-Mat eular2rot(Vec3f theta)
+// Wrapper of rodrigues rotation vector <-> matrix conversion
+Mat eular2rot(Vec3d theta)
 {
-    // Calculate rotation about x axis
-    Mat R_x = (Mat_<double>(3,3) <<
-               1,       0,              0,
-               0,       cos(theta[0]),   -sin(theta[0]),
-               0,       sin(theta[0]),   cos(theta[0])
-               );
-     
-    // Calculate rotation about y axis
-    Mat R_y = (Mat_<double>(3,3) <<
-               cos(theta[1]),    0,      sin(theta[1]),
-               0,               1,      0,
-               -sin(theta[1]),   0,      cos(theta[1])
-               );
-     
-    // Calculate rotation about z axis
-    Mat R_z = (Mat_<double>(3,3) <<
-               cos(theta[2]),    -sin(theta[2]),      0,
-               sin(theta[2]),    cos(theta[2]),       0,
-               0,               0,                  1);
-     
-     
-    // Combined rotation matrix
-    Mat R = R_z * R_y * R_x;
-     
+    Mat R;
+    Rodrigues(theta, R);
     return R;
+}
+
+Vec3d rot2eular(Mat rot_mat)
+{
+    Mat vec_mat;
+    Rodrigues(rot_mat, vec_mat);
+    double* vec_mat_data = (double*)vec_mat.data;
+    Vec3d rot_vec_inv_rodrig(vec_mat_data[0], vec_mat_data[1], vec_mat_data[2]);
+    return rot_vec_inv_rodrig;
 }
 
 // rotate pixel, in_vec as input(row, col)
@@ -113,7 +97,8 @@ int main(int argc, char** argv)
     Mat im_out(im.rows, im.cols, im.type());
     Vec3b* im_data = (Vec3b*)im.data;
     Vec3b* im_out_data = (Vec3b*)im_out.data;
-    Mat rot_mat = eular2rot(Vec3f(-RAD(atof(argv[2])), -RAD(atof(argv[3])), -RAD(atof(argv[4]))));
+    //Mat rot_mat = eular2rot(Vec3f(-RAD(atof(argv[2])), -RAD(atof(argv[3])), -RAD(atof(argv[4]))));
+    Mat rot_mat = eular2rot(Vec3f(RAD(atof(argv[2])), RAD(atof(argv[3])), RAD(atof(argv[4])))).t();
     #pragma omp parallel for
     for(int i = 0; i < static_cast<int>(im_height); i++)
     {
