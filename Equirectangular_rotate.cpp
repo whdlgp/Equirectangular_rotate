@@ -25,21 +25,56 @@ void draw_progress(float progress)
     std::cout.flush();
 }
 
-// Wrapper of rodrigues rotation vector <-> matrix conversion
+// XYZ-eular rotation 
 Mat eular2rot(Vec3d theta)
 {
-    Mat R;
-    Rodrigues(theta, R);
+    // Calculate rotation about x axis
+    Mat R_x = (Mat_<double>(3,3) <<
+               1,       0,              0,
+               0,       cos(theta[0]),   -sin(theta[0]),
+               0,       sin(theta[0]),   cos(theta[0])
+               );
+     
+    // Calculate rotation about y axis
+    Mat R_y = (Mat_<double>(3,3) <<
+               cos(theta[1]),    0,      sin(theta[1]),
+               0,               1,      0,
+               -sin(theta[1]),   0,      cos(theta[1])
+               );
+     
+    // Calculate rotation about z axis
+    Mat R_z = (Mat_<double>(3,3) <<
+               cos(theta[2]),    -sin(theta[2]),      0,
+               sin(theta[2]),    cos(theta[2]),       0,
+               0,               0,                  1);
+     
+    // Combined rotation matrix
+    Mat R = R_x * R_y * R_z;
+     
     return R;
 }
 
-Vec3d rot2eular(Mat rot_mat)
+// Rotation matrix to rotation vector in XYZ-eular order
+Vec3d rot2eular(Mat R)
 {
-    Mat vec_mat;
-    Rodrigues(rot_mat, vec_mat);
-    double* vec_mat_data = (double*)vec_mat.data;
-    Vec3d rot_vec_inv_rodrig(vec_mat_data[0], vec_mat_data[1], vec_mat_data[2]);
-    return rot_vec_inv_rodrig;
+    double sy = sqrt(R.at<double>(2,2) * R.at<double>(2,2) +  R.at<double>(1,2) * R.at<double>(1,2) );
+ 
+    bool singular = sy < 1e-6; // If
+ 
+    double x, y, z;
+    if (!singular)
+    {
+        x = atan2(-R.at<double>(1,2) , R.at<double>(2,2));
+        y = atan2(R.at<double>(0,2), sy);
+        z = atan2(-R.at<double>(0,1), R.at<double>(0,0));
+    }
+    else
+    {
+        x = 0;
+        y = atan2(R.at<double>(0,2), sy);
+        z = atan2(-R.at<double>(0,1), R.at<double>(0,0));
+    }
+    return Vec3d(x, y, z);
 }
 
 // rotate pixel, in_vec as input(row, col)
