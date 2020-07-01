@@ -3,4 +3,6 @@ cmake*
 Makefile
 .vscode/
 *.JPG
+*.png
+*.jpg
 *.out

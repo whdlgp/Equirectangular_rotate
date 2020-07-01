@@ -83,7 +83,7 @@ Vec2i rotate_pixel(const Vec2i& in_vec, Mat& rot_mat, int width, int height)
     Vec2d vec_rad = Vec2d(M_PI*in_vec[0]/height, 2*M_PI*in_vec[1]/width);
 
     Vec3d vec_cartesian;
-    vec_cartesian[0] = sin(vec_rad[0])*cos(vec_rad[1]);
+    vec_cartesian[0] = -sin(vec_rad[0])*cos(vec_rad[1]);
     vec_cartesian[1] = sin(vec_rad[0])*sin(vec_rad[1]);
     vec_cartesian[2] = cos(vec_rad[0]);
 
@@ -95,7 +95,7 @@ Vec2i rotate_pixel(const Vec2i& in_vec, Mat& rot_mat, int width, int height)
 
     Vec2d vec_rot;
     vec_rot[0] = acos(vec_cartesian_rot[2]);
-    vec_rot[1] = atan2(vec_cartesian_rot[1], vec_cartesian_rot[0]);
+    vec_rot[1] = atan2(vec_cartesian_rot[1], -vec_cartesian_rot[0]);
     if(vec_rot[1] < 0)
         vec_rot[1] += M_PI*2;
 
@@ -133,7 +133,7 @@ int main(int argc, char** argv)
     Vec3b* im_data = (Vec3b*)im.data;
     Vec3b* im_out_data = (Vec3b*)im_out.data;
     //Mat rot_mat = eular2rot(Vec3f(-RAD(atof(argv[2])), -RAD(atof(argv[3])), -RAD(atof(argv[4]))));
-    Mat rot_mat = eular2rot(Vec3f(RAD(atof(argv[2])), RAD(atof(argv[3])), RAD(atof(argv[4])))).t();
+    Mat rot_mat = eular2rot(Vec3f(RAD(atof(argv[2])), RAD(atof(argv[3])), RAD(atof(argv[4]))));
     #pragma omp parallel for
     for(int i = 0; i < static_cast<int>(im_height); i++)
     {
