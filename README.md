@@ -13,6 +13,15 @@ Usage : Equirectangular_rotate.out <Image file name> <roll> <pitch> <yaw>
 <roll>, <pitch>, <yaw> is rotation angle, It should be 0~360
 ```
 
+## How to build (with Cmake)
+```
+git clone https://github.com/whdlgp/Equirectangular_rotate
+cd Equirectangular_rotate
+mkdir build && cd build
+cmake ..
+cmake --build .
+```
+
 ## Example
 
 Test with test image, Let's rotate image with Roll, Pitch, Yaw rotation
