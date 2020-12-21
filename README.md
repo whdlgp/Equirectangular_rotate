@@ -20,6 +20,8 @@ cd Equirectangular_rotate
 mkdir build && cd build
 cmake ..
 cmake --build .
+mv Equirectangular_rotate Equirectangular_rotate.out
+
 ```
 
 ## Example
