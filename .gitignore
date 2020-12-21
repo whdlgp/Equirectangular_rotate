@@ -1,6 +1,7 @@
-CMake*
-cmake*
-Makefile
+#CMake*
+#cmake*
+#Makefile
+build/
 .vscode/
 *.JPG
 *.png
